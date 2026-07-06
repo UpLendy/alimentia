@@ -1,4 +1,4 @@
-import { ClipboardList, Thermometer, Bug, Droplets, Trash2, Box, ChevronRight } from "lucide-react";
+import { ClipboardList, Thermometer, Bug, Droplets, Trash2, Box, ChevronRight, UserCheck, PackageOpen, Truck, Building2, Microwave } from "lucide-react";
 import Link from "next/link";
 
 const formatos = [
@@ -45,6 +45,51 @@ const formatos = [
     icon: Box,
     color: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
     href: "/formatos/materias-primas",
+    pending: false
+  },
+  { 
+    id: "higiene", 
+    name: "Higiene de Personal", 
+    desc: "Revisión diaria de uniforme y estado de salud.",
+    icon: UserCheck,
+    color: "bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400",
+    href: "/formatos/higiene",
+    pending: true
+  },
+  { 
+    id: "almacenamiento", 
+    name: "Almacenamiento (PEPS)", 
+    desc: "Condiciones de bodegas y cuartos fríos.",
+    icon: PackageOpen,
+    color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400",
+    href: "/formatos/almacenamiento",
+    pending: false
+  },
+  { 
+    id: "transporte", 
+    name: "Inspección de Transporte", 
+    desc: "Verificación de vehículos y temperatura.",
+    icon: Truck,
+    color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+    href: "/formatos/transporte",
+    pending: false
+  },
+  { 
+    id: "instalaciones", 
+    name: "Inspección Locativa", 
+    desc: "Estado físico de pisos, paredes y techos.",
+    icon: Building2,
+    color: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+    href: "/formatos/instalaciones",
+    pending: false
+  },
+  { 
+    id: "equipos", 
+    name: "Estado de Equipos", 
+    desc: "Revisión y mantenimiento de utensilios.",
+    icon: Microwave,
+    color: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+    href: "/formatos/equipos",
     pending: false
   },
 ];

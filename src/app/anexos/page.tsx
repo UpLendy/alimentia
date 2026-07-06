@@ -1,6 +1,8 @@
 "use client";
 
 import { Paperclip, UploadCloud, FileText, Search, Link as LinkIcon, Download } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const anexos = [
   {
@@ -34,8 +36,10 @@ const anexos = [
 ];
 
 export default function AnexosYSoportes() {
+  const router = useRouter();
+
   const handleDownload = (name: string) => {
-    alert(`(Mock) Descargando anexo: ${name}`);
+    router.push("/visor");
   };
 
   const handleUpload = () => {
@@ -54,13 +58,13 @@ export default function AnexosYSoportes() {
             Documentos externos, certificados y resultados de laboratorio que respaldan tus programas.
           </p>
         </div>
-        <button 
-          onClick={handleUpload}
+        <Link 
+          href="/anexos/subir"
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm shadow-indigo-500/20"
         >
           <UploadCloud className="w-4 h-4" />
           Subir Soporte
-        </button>
+        </Link>
       </header>
 
       {/* Buscador y Filtros */}

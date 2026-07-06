@@ -9,15 +9,19 @@ import {
   Paperclip, 
   Settings, 
   BellRing,
-  X
+  X,
+  Users,
+  Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Documentación Fija", href: "/documentos", icon: FileCheck2 },
+  { name: "Personal", href: "/personal", icon: Users },
+  { name: "Infraestructura", href: "/infraestructura", icon: Building2 },
   { name: "Formatos Diarios", href: "/formatos", icon: ClipboardList },
+  { name: "Documentos Fijos", href: "/documentos", icon: FileCheck2 },
   { name: "Anexos y Soportes", href: "/anexos", icon: Paperclip },
 ];
 

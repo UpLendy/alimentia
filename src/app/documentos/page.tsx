@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, Download, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const programas = [
   { id: 1, name: "Programa de Agua Potable", date: "12 Mar 2024", status: "Vigente" },
@@ -11,8 +12,10 @@ const programas = [
 ];
 
 export default function DocumentosFijos() {
+  const router = useRouter();
+
   const handleDownload = (name: string) => {
-    alert(`(Mock) Simulando descarga del documento: ${name}`);
+    router.push("/visor");
   };
 
   return (

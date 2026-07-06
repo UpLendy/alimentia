@@ -1,3 +1,5 @@
+"use client";
+
 import { AlertCircle, CheckCircle2, Clock, FileText, Activity } from "lucide-react";
 import Link from "next/link";
 
@@ -128,35 +130,63 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Recent Activity */}
+        {/* Centro de Alertas */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl border border-border/50 shadow-sm p-6">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Actividad Reciente</h2>
-          <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            Centro de Alertas
+          </h2>
+          <div className="space-y-4">
             
-            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-slate-900 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-border/50 bg-slate-50 dark:bg-slate-800/50 shadow-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="font-semibold text-slate-900 dark:text-white text-sm">Registro Completado</div>
-                  <time className="text-xs font-medium text-emerald-600">Hace 2 horas</time>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl gap-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
                 </div>
-                <div className="text-sm text-slate-500">Se completó el registro de "Recepción de materias primas".</div>
+                <div>
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Certificado Médico Vencido</h4>
+                  <p className="text-sm text-slate-500">Luis Fernando (Almacenista) - Venció 01/06</p>
+                </div>
               </div>
+              <Link 
+                href="/personal" 
+                className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/40 dark:hover:bg-red-900/60 dark:text-red-300 text-sm font-medium rounded-lg transition-colors whitespace-nowrap text-center"
+              >
+                Gestionar
+              </Link>
             </div>
 
-            <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-slate-900 bg-blue-100 dark:bg-blue-900/30 text-blue-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-border/50 bg-slate-50 dark:bg-slate-800/50 shadow-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="font-semibold text-slate-900 dark:text-white text-sm">Nuevo Anexo</div>
-                  <time className="text-xs font-medium text-slate-500">Ayer</time>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl gap-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm">
+                  <Clock className="w-5 h-5 text-amber-500" />
                 </div>
-                <div className="text-sm text-slate-500">Se subió el certificado mensual de Aguas de Manizales.</div>
+                <div>
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Calibración Próxima a Vencer</h4>
+                  <p className="text-sm text-slate-500">Termómetro Cuarto Frío 1 - Vence en 5 días</p>
+                </div>
               </div>
+              <Link 
+                href="/infraestructura" 
+                className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 dark:bg-amber-900/40 dark:hover:bg-amber-900/60 dark:text-amber-300 text-sm font-medium rounded-lg transition-colors whitespace-nowrap text-center"
+              >
+                Ver Equipo
+              </Link>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl gap-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm">
+                  <Activity className="w-5 h-5 text-blue-500" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900 dark:text-white">Análisis de Agua Pendiente</h4>
+                  <p className="text-sm text-slate-500">Programar muestreo semestral</p>
+                </div>
+              </div>
+              <Link href="/alertas/programar" className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 dark:text-blue-300 text-sm font-medium rounded-lg transition-colors whitespace-nowrap text-center">
+                Programar
+              </Link>
             </div>
 
           </div>

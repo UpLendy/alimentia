@@ -1,7 +1,6 @@
 "use client";
 
 import { FileText, ArrowLeft, Download, Printer, ZoomIn, ZoomOut, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function VisorPDF() {

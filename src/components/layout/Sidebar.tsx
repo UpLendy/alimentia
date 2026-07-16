@@ -2,19 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  FileCheck2, 
-  ClipboardList, 
-  Paperclip, 
-  Settings, 
+import {
+  LayoutDashboard,
+  FileCheck2,
+  ClipboardList,
+  Paperclip,
+  Settings,
   BellRing,
   X,
   Users,
-  Building2
+  Building2,
+  ShieldAlert,
+  ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -23,14 +26,45 @@ const navigation = [
   { name: "Formatos Diarios", href: "/formatos", icon: ClipboardList },
   { name: "Documentos Fijos", href: "/documentos", icon: FileCheck2 },
   { name: "Anexos y Soportes", href: "/anexos", icon: Paperclip },
+  { name: "No Conformidades", href: "/no-conformidades", icon: ShieldAlert },
+];
+
+// Solo visible para staff de BPM Consulting (role bpm_admin): panel interno
+// de avance del Checklist Maestro por empresa cliente, no para el cliente final.
+const bpmAdminNavigation = [
+  { name: "Checklist Maestro", href: "/admin/checklist", icon: ListChecks },
 ];
 
 interface SidebarProps {
   onClose?: () => void;
 }
 
+function NavLink({ item, isActive }: { item: (typeof navigation)[number]; isActive: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        "group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
+        isActive
+          ? "bg-primary/10 text-primary"
+          : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
+      )}
+    >
+      <item.icon
+        className={cn(
+          "mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
+          isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-500"
+        )}
+        aria-hidden="true"
+      />
+      {item.name}
+    </Link>
+  );
+}
+
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <div className="flex h-full w-64 flex-col bg-white dark:bg-slate-900 border-r border-border/40 shadow-sm transition-all duration-300">
@@ -60,30 +94,23 @@ export function Sidebar({ onClose }: SidebarProps) {
         <nav className="space-y-1.5">
           {navigation.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
-            
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  "group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
-                )}
-              >
-                <item.icon
-                  className={cn(
-                    "mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
-                    isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-500"
-                  )}
-                  aria-hidden="true"
-                />
-                {item.name}
-              </Link>
-            );
+            return <NavLink key={item.name} item={item} isActive={!!isActive} />;
           })}
         </nav>
+
+        {user?.role === "bpm_admin" && (
+          <>
+            <p className="px-3 pt-6 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              BPM Consulting
+            </p>
+            <nav className="space-y-1.5">
+              {bpmAdminNavigation.map((item) => {
+                const isActive = pathname === item.href || pathname?.startsWith(item.href);
+                return <NavLink key={item.name} item={item} isActive={!!isActive} />;
+              })}
+            </nav>
+          </>
+        )}
       </div>
 
       <div className="p-4 border-t border-border/40 space-y-4">

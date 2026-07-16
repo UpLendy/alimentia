@@ -8,8 +8,11 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Avoid hydration mismatch
+  // Avoid hydration mismatch: no hay forma de detectar "ya hidrató en el
+  // cliente" sin un efecto, ya que necesitamos un render idéntico al del
+  // servidor antes de mostrar el estado real del tema.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

@@ -1,10 +1,20 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Settings, User, Bell, Shield, LogOut } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function Configuración() {
+  const { logout } = useAuth();
+  const router = useRouter();
+
   const handleAction = (action: string) => {
     alert(`(Mock) Ejecutando acción de configuración: ${action}`);
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
   };
 
   return (
@@ -75,7 +85,7 @@ export default function Configuración() {
             <h2 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">Zona de Peligro</h2>
             <p className="text-sm text-slate-500 mb-4">Opciones avanzadas y de cierre de sesión.</p>
             
-            <button onClick={() => handleAction('Cerrar Sesión')} className="flex items-center gap-2 text-red-600 font-medium hover:text-red-700 px-4 py-2 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors">
+            <button onClick={handleLogout} className="flex items-center gap-2 text-red-600 font-medium hover:text-red-700 px-4 py-2 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors">
               <LogOut className="w-4 h-4" />
               Cerrar Sesión
             </button>

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { AuthGate } from "@/components/auth/AuthGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +33,9 @@ export default function RootLayout({
     >
       <body className="h-full min-h-screen text-foreground overflow-hidden">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AppLayout>
-            {children}
-          </AppLayout>
+          <AuthProvider>
+            <AuthGate>{children}</AuthGate>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

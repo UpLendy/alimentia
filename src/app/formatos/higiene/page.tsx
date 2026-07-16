@@ -1,26 +1,79 @@
 "use client";
 
-import { CheckSquare, ArrowLeft, Save, UserCheck } from "lucide-react";
+import { ArrowLeft, Save, UserCheck, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import type { DailyFormShift } from "@/lib/api";
+import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
+
+interface EmpleadoRow {
+  nombre: string;
+  uniformeLimpio: boolean;
+  unasLimpias: boolean;
+  sinJoyas: boolean;
+  saludOk: boolean;
+  observaciones: string;
+}
+
+function initialRows(): EmpleadoRow[] {
+  return ["María Rodríguez", "Carlos Gómez", "Ana Martínez", "Luis Fernando"].map((nombre) => ({
+    nombre,
+    uniformeLimpio: true,
+    unasLimpias: true,
+    sinJoyas: true,
+    saludOk: true,
+    observaciones: "",
+  }));
+}
 
 export default function FormatoHigiene() {
-  const [empleados] = useState([
-    "María Rodríguez",
-    "Carlos Gómez",
-    "Ana Martínez",
-    "Luis Fernando"
-  ]);
+  const [empleados, setEmpleados] = useState<EmpleadoRow[]>(initialRows);
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [shift, setShift] = useState<DailyFormShift | "">("");
+  const [auditor, setAuditor] = useState("Admin");
+  const [observations, setObservations] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const {
+    sedes,
+    sedesError,
+    sedeId,
+    setSedeId,
+    showSedeSelector,
+    isSubmitting,
+    saveState,
+    errorMessage,
+    validationDetails,
+    submit,
+  } = useDailyFormSubmit("higiene");
+
+  const updateRow = (idx: number, field: keyof EmpleadoRow, value: string | boolean) => {
+    setEmpleados((rows) => rows.map((row, i) => (i === idx ? { ...row, [field]: value } : row)));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("(Mock) Checklist de higiene guardado exitosamente.");
+    await submit({
+      formDate,
+      shift,
+      observations,
+      payload: {
+        auditor,
+        empleados: empleados.map((row) => ({
+          nombre: row.nombre,
+          uniformeLimpio: row.uniformeLimpio,
+          unasLimpias: row.unasLimpias,
+          sinJoyas: row.sinJoyas,
+          saludOk: row.saludOk,
+          observaciones: row.observaciones || undefined,
+        })),
+      },
+    });
   };
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <Link 
-        href="/personal" 
+      <Link
+        href="/personal"
         className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -42,14 +95,61 @@ export default function FormatoHigiene() {
       </header>
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-border/50 p-6 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {sedesError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium">
+            {sedesError}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {showSedeSelector && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Sede</label>
+              <select
+                required
+                value={sedeId}
+                onChange={(e) => setSedeId(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              >
+                <option value="" disabled>Selecciona una sede</option>
+                {sedes?.map((sede) => (
+                  <option key={sede.id} value={sede.id}>{sede.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Fecha</label>
-            <input type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+            <input
+              type="date"
+              required
+              value={formDate}
+              onChange={(e) => setFormDate(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Auditor / Supervisor</label>
-            <input type="text" required defaultValue="Admin" className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+            <input
+              type="text"
+              required
+              value={auditor}
+              onChange={(e) => setAuditor(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Turno (opcional)</label>
+            <select
+              value={shift}
+              onChange={(e) => setShift(e.target.value as DailyFormShift | "")}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            >
+              <option value="">Sin especificar</option>
+              <option value="manana">Mañana</option>
+              <option value="tarde">Tarde</option>
+              <option value="noche">Noche</option>
+            </select>
           </div>
         </div>
 
@@ -67,23 +167,49 @@ export default function FormatoHigiene() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {empleados.map((nombre, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{nombre}</td>
+                {empleados.map((row, idx) => (
+                  <tr key={row.nombre} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{row.nombre}</td>
                     <td className="px-4 py-3 text-center">
-                      <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                      <input
+                        type="checkbox"
+                        checked={row.uniformeLimpio}
+                        onChange={(e) => updateRow(idx, "uniformeLimpio", e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                      />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                      <input
+                        type="checkbox"
+                        checked={row.unasLimpias}
+                        onChange={(e) => updateRow(idx, "unasLimpias", e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                      />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                      <input
+                        type="checkbox"
+                        checked={row.sinJoyas}
+                        onChange={(e) => updateRow(idx, "sinJoyas", e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                      />
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                      <input
+                        type="checkbox"
+                        checked={row.saludOk}
+                        onChange={(e) => updateRow(idx, "saludOk", e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                      />
                     </td>
                     <td className="px-4 py-3">
-                      <input type="text" placeholder="Opcional..." className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded px-2 py-1 text-sm outline-none" />
+                      <input
+                        type="text"
+                        placeholder="Opcional..."
+                        value={row.observaciones}
+                        onChange={(e) => updateRow(idx, "observaciones", e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded px-2 py-1 text-sm outline-none"
+                      />
                     </td>
                   </tr>
                 ))}
@@ -92,12 +218,49 @@ export default function FormatoHigiene() {
           </div>
         </div>
 
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Observaciones generales (opcional)</label>
+          <textarea
+            rows={2}
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            placeholder="Notas adicionales sobre el registro..."
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+          />
+        </div>
+
+        {saveState === "success" && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Registro guardado con éxito.
+          </div>
+        )}
+
+        {saveState === "error" && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm space-y-2">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {errorMessage}
+            </div>
+            {validationDetails && validationDetails.length > 0 && (
+              <ul className="list-disc list-inside text-xs space-y-1 pl-1">
+                {validationDetails.map((d, i) => (
+                  <li key={i}>
+                    <span className="font-mono">{d.path}</span>: {d.message}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         <div className="pt-4 border-t border-border flex justify-end">
-          <button 
-            type="submit" 
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm shadow-indigo-500/30 flex items-center gap-2"
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm shadow-indigo-500/30 flex items-center gap-2"
           >
-            <Save className="w-5 h-5" />
+            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             Guardar Inspección
           </button>
         </div>

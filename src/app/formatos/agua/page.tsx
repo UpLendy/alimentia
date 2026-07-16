@@ -1,18 +1,54 @@
 "use client";
 
-import { Droplets, ArrowLeft, Save } from "lucide-react";
+import { useState } from "react";
+import { Droplets, ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import type { DailyFormShift } from "@/lib/api";
+import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
+
+type Caracteristica = "normal" | "anormal";
 
 export default function FormatoAgua() {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [shift, setShift] = useState<DailyFormShift | "">("");
+  const [color, setColor] = useState<Caracteristica>("normal");
+  const [olor, setOlor] = useState<Caracteristica>("normal");
+  const [sabor, setSabor] = useState<Caracteristica>("normal");
+  const [cloroResidualPpm, setCloroResidualPpm] = useState("");
+  const [observations, setObservations] = useState("");
+
+  const {
+    sedes,
+    sedesError,
+    sedeId,
+    setSedeId,
+    showSedeSelector,
+    isSubmitting,
+    saveState,
+    errorMessage,
+    validationDetails,
+    submit,
+  } = useDailyFormSubmit("agua");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("(Mock) Registro de calidad de agua guardado exitosamente.");
+    await submit({
+      formDate,
+      shift,
+      observations,
+      payload: {
+        color,
+        olor,
+        sabor,
+        cloroResidualPpm: cloroResidualPpm ? Number(cloroResidualPpm) : undefined,
+      },
+    });
   };
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <Link 
-        href="/formatos" 
+      <Link
+        href="/formatos"
         className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -34,30 +70,67 @@ export default function FormatoAgua() {
       </header>
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-border/50 p-6 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {sedesError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium">
+            {sedesError}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {showSedeSelector && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Sede</label>
+              <select
+                required
+                value={sedeId}
+                onChange={(e) => setSedeId(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              >
+                <option value="" disabled>Selecciona una sede</option>
+                {sedes?.map((sede) => (
+                  <option key={sede.id} value={sede.id}>{sede.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Fecha de Evaluación</label>
-            <input type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+            <input
+              type="date"
+              required
+              value={formDate}
+              onChange={(e) => setFormDate(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Hora</label>
-            <input type="time" required className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Turno (opcional)</label>
+            <select
+              value={shift}
+              onChange={(e) => setShift(e.target.value as DailyFormShift | "")}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            >
+              <option value="">Sin especificar</option>
+              <option value="manana">Mañana</option>
+              <option value="tarde">Tarde</option>
+              <option value="noche">Noche</option>
+            </select>
           </div>
         </div>
 
         <div className="space-y-6">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white border-b border-border pb-2">Características Físicas</h3>
-          
+
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border/50 gap-4">
               <span className="font-medium text-slate-700 dark:text-slate-300">Color</span>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="color" value="normal" defaultChecked className="text-blue-500 focus:ring-blue-500" />
+                  <input type="radio" name="color" checked={color === "normal"} onChange={() => setColor("normal")} className="text-blue-500 focus:ring-blue-500" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">Incoloro (Normal)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="color" value="anormal" className="text-red-500 focus:ring-red-500" />
+                  <input type="radio" name="color" checked={color === "anormal"} onChange={() => setColor("anormal")} className="text-red-500 focus:ring-red-500" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">Turbio/Anormal</span>
                 </label>
               </div>
@@ -67,25 +140,25 @@ export default function FormatoAgua() {
               <span className="font-medium text-slate-700 dark:text-slate-300">Olor</span>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="olor" value="normal" defaultChecked className="text-blue-500 focus:ring-blue-500" />
+                  <input type="radio" name="olor" checked={olor === "normal"} onChange={() => setOlor("normal")} className="text-blue-500 focus:ring-blue-500" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">Inodoro (Normal)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="olor" value="anormal" className="text-red-500 focus:ring-red-500" />
+                  <input type="radio" name="olor" checked={olor === "anormal"} onChange={() => setOlor("anormal")} className="text-red-500 focus:ring-red-500" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">Olor Extraño</span>
                 </label>
               </div>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border/50 gap-4">
               <span className="font-medium text-slate-700 dark:text-slate-300">Sabor</span>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="sabor" value="normal" defaultChecked className="text-blue-500 focus:ring-blue-500" />
+                  <input type="radio" name="sabor" checked={sabor === "normal"} onChange={() => setSabor("normal")} className="text-blue-500 focus:ring-blue-500" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">Insípido (Normal)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="sabor" value="anormal" className="text-red-500 focus:ring-red-500" />
+                  <input type="radio" name="sabor" checked={sabor === "anormal"} onChange={() => setSabor("anormal")} className="text-red-500 focus:ring-red-500" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">Sabor Extraño</span>
                 </label>
               </div>
@@ -95,15 +168,59 @@ export default function FormatoAgua() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nivel de Cloro Residual (ppm) - Opcional</label>
-          <input type="number" step="0.1" placeholder="Ej. 1.5" className="w-full md:w-1/2 bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+          <input
+            type="number"
+            step="0.1"
+            placeholder="Ej. 1.5"
+            value={cloroResidualPpm}
+            onChange={(e) => setCloroResidualPpm(e.target.value)}
+            className="w-full md:w-1/2 bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          />
         </div>
 
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Observaciones (opcional)</label>
+          <textarea
+            rows={2}
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            placeholder="Notas adicionales sobre el registro..."
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+          />
+        </div>
+
+        {saveState === "success" && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Registro guardado con éxito.
+          </div>
+        )}
+
+        {saveState === "error" && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm space-y-2">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {errorMessage}
+            </div>
+            {validationDetails && validationDetails.length > 0 && (
+              <ul className="list-disc list-inside text-xs space-y-1 pl-1">
+                {validationDetails.map((d, i) => (
+                  <li key={i}>
+                    <span className="font-mono">{d.path}</span>: {d.message}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         <div className="pt-4 border-t border-border flex justify-end">
-          <button 
-            type="submit" 
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm shadow-blue-500/30 flex items-center gap-2"
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm shadow-blue-500/30 flex items-center gap-2"
           >
-            <Save className="w-5 h-5" />
+            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             Guardar Registro
           </button>
         </div>

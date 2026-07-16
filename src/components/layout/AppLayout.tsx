@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "lucide-react";
@@ -9,11 +9,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const [prevPathname, setPrevPathname] = useState(pathname);
 
-  // Cerrar sidebar al cambiar de ruta en móvil
-  useEffect(() => {
+  // Cerrar sidebar al cambiar de ruta en móvil (ajuste de estado durante el
+  // render en vez de en un efecto, ver "You Might Not Need an Effect").
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setSidebarOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <div className="flex h-full min-h-screen bg-background w-full overflow-hidden">

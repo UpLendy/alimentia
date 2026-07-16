@@ -1,23 +1,54 @@
 "use client";
 
-import { PackageOpen, ArrowLeft, Save } from "lucide-react";
+import { PackageOpen, ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import type { DailyFormShift } from "@/lib/api";
+import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
+
+const CHECKS = [
+  "Productos almacenados sobre estibas (no en el piso)",
+  "Separación adecuada entre crudos y cocidos",
+  "Rotación PEPS (Primeros en Entrar, Primeros en Salir)",
+  "Ausencia de productos vencidos",
+  "Productos químicos separados de los alimentos",
+  "Empaques íntegros y limpios",
+];
+
+const BODEGAS = ["Bodega Secos", "Cuarto Frío Carnes", "Cuarto Frío Verduras"];
 
 export default function FormatoAlmacenamiento() {
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("(Mock) Checklist de almacenamiento guardado.");
-  };
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [shift, setShift] = useState<DailyFormShift | "">("");
+  const [bodega, setBodega] = useState(BODEGAS[0]);
+  const [cumple, setCumple] = useState<Record<string, boolean>>({});
+  const [hallazgos, setHallazgos] = useState("");
 
-  const checks = [
-    "Productos almacenados sobre estibas (no en el piso)",
-    "Separación adecuada entre crudos y cocidos",
-    "Rotación PEPS (Primeros en Entrar, Primeros en Salir)",
-    "Ausencia de productos vencidos",
-    "Productos químicos separados de los alimentos",
-    "Empaques íntegros y limpios"
-  ];
+  const {
+    sedes,
+    sedesError,
+    sedeId,
+    setSedeId,
+    showSedeSelector,
+    isSubmitting,
+    saveState,
+    errorMessage,
+    validationDetails,
+    submit,
+  } = useDailyFormSubmit("almacenamiento");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submit({
+      formDate,
+      shift,
+      payload: {
+        bodega,
+        checks: CHECKS.map((item) => ({ item, cumple: cumple[item] ?? true })),
+        hallazgos: hallazgos || undefined,
+      },
+    });
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -36,17 +67,62 @@ export default function FormatoAlmacenamiento() {
       </header>
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-border/50 p-6 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {sedesError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium">
+            {sedesError}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {showSedeSelector && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Sede</label>
+              <select
+                required
+                value={sedeId}
+                onChange={(e) => setSedeId(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none"
+              >
+                <option value="" disabled>Selecciona una sede</option>
+                {sedes?.map((sede) => (
+                  <option key={sede.id} value={sede.id}>{sede.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Fecha</label>
-            <input type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none" />
+            <input
+              type="date"
+              required
+              value={formDate}
+              onChange={(e) => setFormDate(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Bodega / Cuarto</label>
-            <select className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none">
-              <option>Bodega Secos</option>
-              <option>Cuarto Frío Carnes</option>
-              <option>Cuarto Frío Verduras</option>
+            <select
+              value={bodega}
+              onChange={(e) => setBodega(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none"
+            >
+              {BODEGAS.map((b) => (
+                <option key={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Turno (opcional)</label>
+            <select
+              value={shift}
+              onChange={(e) => setShift(e.target.value as DailyFormShift | "")}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none"
+            >
+              <option value="">Sin especificar</option>
+              <option value="manana">Mañana</option>
+              <option value="tarde">Tarde</option>
+              <option value="noche">Noche</option>
             </select>
           </div>
         </div>
@@ -54,12 +130,28 @@ export default function FormatoAlmacenamiento() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white border-b border-border pb-2">Checklist de Cumplimiento</h3>
           <div className="space-y-3">
-            {checks.map((check, idx) => (
-              <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border/50 gap-4">
+            {CHECKS.map((check) => (
+              <div key={check} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border/50 gap-4">
                 <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">{check}</span>
                 <div className="flex gap-4 shrink-0">
-                  <label className="flex items-center gap-2"><input type="radio" name={`chk-${idx}`} defaultChecked className="text-cyan-600" /> Sí</label>
-                  <label className="flex items-center gap-2"><input type="radio" name={`chk-${idx}`} className="text-red-500" /> No</label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={`chk-${check}`}
+                      checked={cumple[check] ?? true}
+                      onChange={() => setCumple((prev) => ({ ...prev, [check]: true }))}
+                      className="text-cyan-600"
+                    /> Sí
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={`chk-${check}`}
+                      checked={!(cumple[check] ?? true)}
+                      onChange={() => setCumple((prev) => ({ ...prev, [check]: false }))}
+                      className="text-red-500"
+                    /> No
+                  </label>
                 </div>
               </div>
             ))}
@@ -68,12 +160,48 @@ export default function FormatoAlmacenamiento() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Hallazgos / Acciones Correctivas</label>
-          <textarea rows={3} className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none resize-none" placeholder="Escriba aquí..." />
+          <textarea
+            rows={3}
+            value={hallazgos}
+            onChange={(e) => setHallazgos(e.target.value)}
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none resize-none"
+            placeholder="Escriba aquí..."
+          />
         </div>
 
+        {saveState === "success" && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Registro guardado con éxito.
+          </div>
+        )}
+
+        {saveState === "error" && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm space-y-2">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {errorMessage}
+            </div>
+            {validationDetails && validationDetails.length > 0 && (
+              <ul className="list-disc list-inside text-xs space-y-1 pl-1">
+                {validationDetails.map((d, i) => (
+                  <li key={i}>
+                    <span className="font-mono">{d.path}</span>: {d.message}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         <div className="pt-4 border-t border-border flex justify-end">
-          <button type="submit" className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm flex items-center gap-2">
-            <Save className="w-5 h-5" /> Guardar Registro
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm flex items-center gap-2"
+          >
+            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Guardar Registro
           </button>
         </div>
       </form>

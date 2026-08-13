@@ -5,32 +5,69 @@ import Link from "next/link";
 import { useState } from "react";
 import type { DailyFormShift } from "@/lib/api";
 import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
+import { useAuth } from "@/components/auth/AuthProvider";
+
+type Cumplimiento = "cumple" | "no_cumple" | "no_aplica";
+
+type ChecklistField =
+  | "uniformeLimpio"
+  | "unasLimpias"
+  | "sinJoyas"
+  | "saludOk"
+  | "cabelloRecogido"
+  | "sinBarbaOBigote"
+  | "lavadoManos"
+  | "sinMaquillaje"
+  | "usoTapabocas";
+
+const CHECKLIST_ITEMS: { field: ChecklistField; label: string }[] = [
+  { field: "uniformeLimpio", label: "Uniforme Limpio" },
+  { field: "unasLimpias", label: "Uñas Cortas/Limpias" },
+  { field: "sinJoyas", label: "Sin Joyas" },
+  { field: "saludOk", label: "Salud Aparente OK" },
+  { field: "cabelloRecogido", label: "Cabello Recogido y Cubierto" },
+  { field: "sinBarbaOBigote", label: "Sin Barba o Bigote" },
+  { field: "lavadoManos", label: "Lavado e Higiene de Manos" },
+  { field: "sinMaquillaje", label: "Sin Maquillaje" },
+  { field: "usoTapabocas", label: "Uso Adecuado del Tapabocas" },
+];
 
 interface EmpleadoRow {
   nombre: string;
-  uniformeLimpio: boolean;
-  unasLimpias: boolean;
-  sinJoyas: boolean;
-  saludOk: boolean;
+  uniformeLimpio: Cumplimiento;
+  unasLimpias: Cumplimiento;
+  sinJoyas: Cumplimiento;
+  saludOk: Cumplimiento;
+  cabelloRecogido: Cumplimiento;
+  sinBarbaOBigote: Cumplimiento;
+  lavadoManos: Cumplimiento;
+  sinMaquillaje: Cumplimiento;
+  usoTapabocas: Cumplimiento;
   observaciones: string;
 }
 
 function initialRows(): EmpleadoRow[] {
   return ["María Rodríguez", "Carlos Gómez", "Ana Martínez", "Luis Fernando"].map((nombre) => ({
     nombre,
-    uniformeLimpio: true,
-    unasLimpias: true,
-    sinJoyas: true,
-    saludOk: true,
+    uniformeLimpio: "cumple",
+    unasLimpias: "cumple",
+    sinJoyas: "cumple",
+    saludOk: "cumple",
+    cabelloRecogido: "cumple",
+    sinBarbaOBigote: "cumple",
+    lavadoManos: "cumple",
+    sinMaquillaje: "cumple",
+    usoTapabocas: "cumple",
     observaciones: "",
   }));
 }
 
 export default function FormatoHigiene() {
+  const { user } = useAuth();
   const [empleados, setEmpleados] = useState<EmpleadoRow[]>(initialRows);
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [shift, setShift] = useState<DailyFormShift | "">("");
-  const [auditor, setAuditor] = useState("Admin");
+  const [auditor, setAuditor] = useState(() => user?.fullName ?? "");
   const [observations, setObservations] = useState("");
 
   const {
@@ -46,7 +83,7 @@ export default function FormatoHigiene() {
     submit,
   } = useDailyFormSubmit("higiene");
 
-  const updateRow = (idx: number, field: keyof EmpleadoRow, value: string | boolean) => {
+  const updateRow = (idx: number, field: keyof EmpleadoRow, value: string) => {
     setEmpleados((rows) => rows.map((row, i) => (i === idx ? { ...row, [field]: value } : row)));
   };
 
@@ -64,6 +101,11 @@ export default function FormatoHigiene() {
           unasLimpias: row.unasLimpias,
           sinJoyas: row.sinJoyas,
           saludOk: row.saludOk,
+          cabelloRecogido: row.cabelloRecogido,
+          sinBarbaOBigote: row.sinBarbaOBigote,
+          lavadoManos: row.lavadoManos,
+          sinMaquillaje: row.sinMaquillaje,
+          usoTapabocas: row.usoTapabocas,
           observaciones: row.observaciones || undefined,
         })),
       },
@@ -159,10 +201,11 @@ export default function FormatoHigiene() {
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-b border-border">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Empleado</th>
-                  <th className="px-4 py-3 font-semibold text-center">Uniforme Limpio</th>
-                  <th className="px-4 py-3 font-semibold text-center">Uñas Cortas/Limpias</th>
-                  <th className="px-4 py-3 font-semibold text-center">Sin Joyas</th>
-                  <th className="px-4 py-3 font-semibold text-center">Salud Aparente OK</th>
+                  {CHECKLIST_ITEMS.map((item) => (
+                    <th key={item.field} className="px-4 py-3 font-semibold text-center">
+                      {item.label}
+                    </th>
+                  ))}
                   <th className="px-4 py-3 font-semibold">Observaciones</th>
                 </tr>
               </thead>
@@ -170,38 +213,19 @@ export default function FormatoHigiene() {
                 {empleados.map((row, idx) => (
                   <tr key={row.nombre} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{row.nombre}</td>
-                    <td className="px-4 py-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.uniformeLimpio}
-                        onChange={(e) => updateRow(idx, "uniformeLimpio", e.target.checked)}
-                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.unasLimpias}
-                        onChange={(e) => updateRow(idx, "unasLimpias", e.target.checked)}
-                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.sinJoyas}
-                        onChange={(e) => updateRow(idx, "sinJoyas", e.target.checked)}
-                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.saludOk}
-                        onChange={(e) => updateRow(idx, "saludOk", e.target.checked)}
-                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                      />
-                    </td>
+                    {CHECKLIST_ITEMS.map((item) => (
+                      <td key={item.field} className="px-4 py-3 text-center">
+                        <select
+                          value={row[item.field]}
+                          onChange={(e) => updateRow(idx, item.field, e.target.value)}
+                          className="bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        >
+                          <option value="cumple">Cumple</option>
+                          <option value="no_cumple">No Cumple</option>
+                          <option value="no_aplica">No Aplica</option>
+                        </select>
+                      </td>
+                    ))}
                     <td className="px-4 py-3">
                       <input
                         type="text"

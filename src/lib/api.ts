@@ -290,6 +290,7 @@ export interface NewNonConformityInput {
   description: string;
   severity?: NonConformitySeverity;
   correctiveAction?: string;
+  responsibleUserId?: string;
   dueDate?: string;
   evidenceFileUrl?: string;
 }

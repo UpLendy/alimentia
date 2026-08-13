@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Save, Thermometer, Plus, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, Thermometer, Plus, Trash2, Loader2, AlertCircle, Info } from "lucide-react";
 import Link from "next/link";
 import type { DailyFormShift } from "@/lib/api";
 import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface EquipoRow {
   id: number;
@@ -16,6 +17,7 @@ interface EquipoRow {
 let nextRowId = 3;
 
 export default function RegistroTemperatura() {
+  const { user } = useAuth();
   const [equipos, setEquipos] = useState<EquipoRow[]>([
     { id: 1, name: "Nevera Principal (Carnes)", temp: "", time: "08:00" },
     { id: 2, name: "Congelador 1", temp: "", time: "08:00" },
@@ -23,6 +25,7 @@ export default function RegistroTemperatura() {
 
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [shift, setShift] = useState<DailyFormShift | "">("");
+  const [responsable, setResponsable] = useState(() => user?.fullName ?? "");
   const [observations, setObservations] = useState("");
 
   const {
@@ -57,6 +60,7 @@ export default function RegistroTemperatura() {
       shift,
       observations,
       payload: {
+        responsable,
         equipos: equipos.map((row) => ({
           name: row.name,
           time: row.time,
@@ -108,7 +112,7 @@ export default function RegistroTemperatura() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {showSedeSelector && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Sede</label>
@@ -126,6 +130,16 @@ export default function RegistroTemperatura() {
               </div>
             )}
             <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsable</label>
+              <input
+                type="text"
+                required
+                value={responsable}
+                onChange={(e) => setResponsable(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary transition-all"
+              />
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Turno (opcional)</label>
               <select
                 value={shift}
@@ -138,6 +152,14 @@ export default function RegistroTemperatura() {
                 <option value="noche">Noche</option>
               </select>
             </div>
+          </div>
+
+          <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-400 px-4 py-3 rounded-xl text-xs">
+            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              Rango de referencia (valores a confirmar con BPM Consulting): refrigeración 0°C – 4°C, congelación
+              -18°C o menos.
+            </span>
           </div>
 
           <div className="overflow-x-auto">

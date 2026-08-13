@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { DailyFormShift } from "@/lib/api";
 import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const EQUIPOS = ["Refrigerador Principal", "Estufa Industrial", "Licuadora", "Mesas en Acero Inoxidable"];
 
@@ -12,14 +13,18 @@ interface EquipoRow {
   limpio: boolean;
   buenEstado: boolean;
   requiereMantenimiento: boolean;
+  productoLimpieza: string;
 }
 
 export default function FormatoEquipos() {
+  const { user } = useAuth();
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [shift, setShift] = useState<DailyFormShift | "">("");
-  const [responsable, setResponsable] = useState("");
+  const [responsable, setResponsable] = useState(() => user?.fullName ?? "");
   const [equipos, setEquipos] = useState<Record<string, EquipoRow>>(
-    Object.fromEntries(EQUIPOS.map((eq) => [eq, { limpio: true, buenEstado: true, requiereMantenimiento: false }]))
+    Object.fromEntries(
+      EQUIPOS.map((eq) => [eq, { limpio: true, buenEstado: true, requiereMantenimiento: false, productoLimpieza: "" }]),
+    ),
   );
 
   const {
@@ -35,7 +40,7 @@ export default function FormatoEquipos() {
     submit,
   } = useDailyFormSubmit("equipos");
 
-  const updateRow = (eq: string, field: keyof EquipoRow, value: boolean) => {
+  const updateRow = (eq: string, field: keyof EquipoRow, value: boolean | string) => {
     setEquipos((prev) => ({ ...prev, [eq]: { ...prev[eq], [field]: value } }));
   };
 
@@ -51,6 +56,7 @@ export default function FormatoEquipos() {
           limpio: equipos[eq].limpio,
           buenEstado: equipos[eq].buenEstado,
           requiereMantenimiento: equipos[eq].requiereMantenimiento,
+          productoLimpieza: equipos[eq].productoLimpieza || undefined,
         })),
       },
     });
@@ -140,6 +146,7 @@ export default function FormatoEquipos() {
                   <th className="px-4 py-3 font-semibold text-center">Limpio y Desinfectado</th>
                   <th className="px-4 py-3 font-semibold text-center">Buen Estado Físico</th>
                   <th className="px-4 py-3 font-semibold text-center">Requiere Mantenimiento</th>
+                  <th className="px-4 py-3 font-semibold">Producto de Limpieza/Desinfección Utilizado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -147,20 +154,24 @@ export default function FormatoEquipos() {
                   <tr key={eq} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{eq}</td>
                     <td className="px-4 py-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={equipos[eq].limpio}
-                        onChange={(e) => updateRow(eq, "limpio", e.target.checked)}
-                        className="w-4 h-4 text-amber-600 rounded"
-                      />
+                      <select
+                        value={equipos[eq].limpio ? "cumple" : "no_cumple"}
+                        onChange={(e) => updateRow(eq, "limpio", e.target.value === "cumple")}
+                        className="bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-2 py-1.5 text-xs outline-none"
+                      >
+                        <option value="cumple">Cumple</option>
+                        <option value="no_cumple">No Cumple</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={equipos[eq].buenEstado}
-                        onChange={(e) => updateRow(eq, "buenEstado", e.target.checked)}
-                        className="w-4 h-4 text-amber-600 rounded"
-                      />
+                      <select
+                        value={equipos[eq].buenEstado ? "cumple" : "no_cumple"}
+                        onChange={(e) => updateRow(eq, "buenEstado", e.target.value === "cumple")}
+                        className="bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-2 py-1.5 text-xs outline-none"
+                      >
+                        <option value="cumple">Cumple</option>
+                        <option value="no_cumple">No Cumple</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <input
@@ -168,6 +179,15 @@ export default function FormatoEquipos() {
                         checked={equipos[eq].requiereMantenimiento}
                         onChange={(e) => updateRow(eq, "requiereMantenimiento", e.target.checked)}
                         className="w-4 h-4 text-red-600 rounded"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input
+                        type="text"
+                        placeholder="Ej: Amonio cuaternario"
+                        value={equipos[eq].productoLimpieza}
+                        onChange={(e) => updateRow(eq, "productoLimpieza", e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded px-2 py-1.5 text-sm outline-none"
                       />
                     </td>
                   </tr>

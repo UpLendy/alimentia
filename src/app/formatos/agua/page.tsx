@@ -1,19 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Droplets, ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Droplets, ArrowLeft, Save, Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import Link from "next/link";
 import type { DailyFormShift } from "@/lib/api";
 import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type Caracteristica = "normal" | "anormal";
 
 export default function FormatoAgua() {
+  const { user } = useAuth();
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [shift, setShift] = useState<DailyFormShift | "">("");
+  const [puntoMuestreo, setPuntoMuestreo] = useState("");
+  const [responsable, setResponsable] = useState(() => user?.fullName ?? "");
   const [color, setColor] = useState<Caracteristica>("normal");
   const [olor, setOlor] = useState<Caracteristica>("normal");
   const [sabor, setSabor] = useState<Caracteristica>("normal");
+  const [ph, setPh] = useState("");
   const [cloroResidualPpm, setCloroResidualPpm] = useState("");
   const [observations, setObservations] = useState("");
 
@@ -37,9 +42,12 @@ export default function FormatoAgua() {
       shift,
       observations,
       payload: {
+        puntoMuestreo,
+        responsable,
         color,
         olor,
         sabor,
+        ph: ph ? Number(ph) : undefined,
         cloroResidualPpm: cloroResidualPpm ? Number(cloroResidualPpm) : undefined,
       },
     });
@@ -116,6 +124,27 @@ export default function FormatoAgua() {
               <option value="noche">Noche</option>
             </select>
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Punto de Muestreo</label>
+            <input
+              type="text"
+              required
+              placeholder="Ej: Tanque de almacenamiento"
+              value={puntoMuestreo}
+              onChange={(e) => setPuntoMuestreo(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsable</label>
+            <input
+              type="text"
+              required
+              value={responsable}
+              onChange={(e) => setResponsable(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            />
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -166,16 +195,37 @@ export default function FormatoAgua() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nivel de Cloro Residual (ppm) - Opcional</label>
-          <input
-            type="number"
-            step="0.1"
-            placeholder="Ej. 1.5"
-            value={cloroResidualPpm}
-            onChange={(e) => setCloroResidualPpm(e.target.value)}
-            className="w-full md:w-1/2 bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">pH - Opcional</label>
+            <input
+              type="number"
+              step="0.1"
+              placeholder="Ej. 7.2"
+              value={ph}
+              onChange={(e) => setPh(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              Rango de referencia (a confirmar con BPM Consulting): ~6.5 – 9.0.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nivel de Cloro Residual (ppm) - Opcional</label>
+            <input
+              type="number"
+              step="0.1"
+              placeholder="Ej. 1.5"
+              value={cloroResidualPpm}
+              onChange={(e) => setCloroResidualPpm(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              Rango de referencia (a confirmar con BPM Consulting): ~0.3 – 2.0 ppm.
+            </p>
+          </div>
         </div>
 
         <div className="space-y-2">

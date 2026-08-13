@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { DailyFormShift } from "@/lib/api";
 import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface ProductoRow {
   id: number;
@@ -23,11 +24,13 @@ function emptyRow(): ProductoRow {
 }
 
 export default function FormatoMateriasPrimas() {
+  const { user } = useAuth();
   const [items, setItems] = useState<ProductoRow[]>([emptyRow()]);
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [shift, setShift] = useState<DailyFormShift | "">("");
   const [proveedor, setProveedor] = useState("");
   const [facturaRemision, setFacturaRemision] = useState("");
+  const [responsable, setResponsable] = useState(() => user?.fullName ?? "");
   const [observations, setObservations] = useState("");
 
   const {
@@ -59,6 +62,7 @@ export default function FormatoMateriasPrimas() {
       payload: {
         proveedor,
         facturaRemision: facturaRemision || undefined,
+        responsable,
         productos: items.map((row) => ({
           producto: row.producto,
           loteOVencimiento: row.loteOVencimiento || undefined,
@@ -150,6 +154,16 @@ export default function FormatoMateriasPrimas() {
               className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all"
             />
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsable</label>
+            <input
+              type="text"
+              required
+              value={responsable}
+              onChange={(e) => setResponsable(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -172,20 +186,20 @@ export default function FormatoMateriasPrimas() {
           </div>
 
           <div className="space-y-4 overflow-x-auto pb-2">
-            <div className="min-w-[900px]">
+            <div className="min-w-[980px]">
               <div className="grid grid-cols-12 gap-4 mb-2 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                <div className="col-span-3">Producto</div>
+                <div className="col-span-2">Producto</div>
                 <div className="col-span-2">Lote/Venc.</div>
                 <div className="col-span-2">Cant.</div>
                 <div className="col-span-2">Temp (°C)</div>
                 <div className="col-span-1">Empaque OK</div>
-                <div className="col-span-1">Estado</div>
+                <div className="col-span-2">Estado</div>
                 <div className="col-span-1"></div>
               </div>
 
               {items.map((item) => (
                 <div key={item.id} className="grid grid-cols-12 gap-4 items-center bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-border/50 mb-2">
-                  <div className="col-span-3">
+                  <div className="col-span-2">
                     <input
                       type="text"
                       required
@@ -232,14 +246,18 @@ export default function FormatoMateriasPrimas() {
                       className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
                     />
                   </div>
-                  <div className="col-span-1">
+                  <div className="col-span-2">
                     <select
                       value={item.estado}
                       onChange={(e) => updateRow(item.id, "estado", e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-border rounded px-1 py-1.5 text-sm outline-none"
+                      className={`w-full border border-border rounded px-2 py-1.5 text-sm outline-none font-medium ${
+                        item.estado === "rechazado"
+                          ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                          : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
+                      }`}
                     >
-                      <option value="ok">✔️</option>
-                      <option value="rechazado">❌</option>
+                      <option value="ok">Aceptado</option>
+                      <option value="rechazado">Rechazado</option>
                     </select>
                   </div>
                   <div className="col-span-1 text-right">

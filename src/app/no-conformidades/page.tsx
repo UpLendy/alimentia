@@ -20,6 +20,7 @@ import {
   type ValidationErrorDetail,
 } from "@/lib/api";
 import { useSedes } from "@/hooks/useSedes";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const STATUS_LABEL: Record<NonConformityStatus, string> = {
   abierta: "Abierta",
@@ -65,6 +66,7 @@ function NonConformityRowSkeleton() {
 }
 
 export default function NoConformidades() {
+  const { user } = useAuth();
   const { sedes, sedesError, sedeId, setSedeId, showSedeSelector } = useSedes();
 
   const [items, setItems] = useState<NonConformity[] | null>(null);
@@ -143,6 +145,7 @@ export default function NoConformidades() {
         sourceType: "manual",
         description,
         severity,
+        responsibleUserId: user?.id,
         dueDate: dueDate || undefined,
       };
       const { nonConformity } = await api.post<{ nonConformity: NonConformity }>("/non-conformities", input);
@@ -262,7 +265,7 @@ export default function NoConformidades() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Severidad</label>
               <select
@@ -282,6 +285,15 @@ export default function NoConformidades() {
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-red-500 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsable</label>
+              <input
+                type="text"
+                disabled
+                value={user?.fullName ?? ""}
+                className="w-full bg-slate-100 dark:bg-slate-800/50 border border-border rounded-lg px-4 py-2 text-sm text-slate-600 dark:text-slate-400 outline-none cursor-not-allowed"
               />
             </div>
           </div>

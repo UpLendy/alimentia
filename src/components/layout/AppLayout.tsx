@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ReportIssueButton } from "@/components/tickets/ReportIssueButton";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,6 +62,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950/50 w-full">
           {children}
         </main>
+
+        <ReportIssueButton />
       </div>
     </div>
   );

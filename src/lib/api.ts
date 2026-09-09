@@ -354,6 +354,36 @@ export interface UpdateChecklistStatusInput {
   notes?: string;
 }
 
+export type TicketType = "bug" | "mejora" | "duda";
+export type TicketStatus = "abierto" | "en_progreso" | "resuelto";
+
+export interface Ticket {
+  id: string;
+  companyId: string | null;
+  createdByUserId: string;
+  title: string;
+  description: string;
+  type: TicketType;
+  pageContext: string;
+  status: TicketStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Vista de bpm_admin (GET /tickets): igual a Ticket pero con nombre de
+// empresa/creador ya resueltos por el backend.
+export interface TicketWithDetails extends Ticket {
+  companyName: string | null;
+  creatorName: string;
+}
+
+export interface NewTicketInput {
+  title: string;
+  description: string;
+  type: TicketType;
+  pageContext: string;
+}
+
 export interface ValidationErrorDetail {
   path: string;
   message: string;

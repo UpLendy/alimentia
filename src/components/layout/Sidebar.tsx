@@ -14,6 +14,7 @@ import {
   Building2,
   ShieldAlert,
   ListChecks,
+  MessageSquareWarning,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -33,6 +34,7 @@ const navigation = [
 // de avance del Checklist Maestro por empresa cliente, no para el cliente final.
 const bpmAdminNavigation = [
   { name: "Checklist Maestro", href: "/admin/checklist", icon: ListChecks },
+  { name: "Tickets", href: "/admin/tickets", icon: MessageSquareWarning },
 ];
 
 interface SidebarProps {

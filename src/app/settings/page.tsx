@@ -1,12 +1,18 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, User, Bell, Shield, LogOut } from "lucide-react";
+import { Settings, User, Bell, Shield, LogOut, RefreshCw } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { api, ApiError, type Company } from "@/lib/api";
+import { BusinessProfileFormsCard } from "@/components/company/BusinessProfileFormsCard";
 
 export default function Configuración() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
+
+  const [company, setCompany] = useState<Company | null>(null);
+  const [companyError, setCompanyError] = useState<string | null>(null);
 
   const handleAction = (action: string) => {
     alert(`(Mock) Ejecutando acción de configuración: ${action}`);
@@ -16,6 +22,23 @@ export default function Configuración() {
     logout();
     router.replace("/login");
   };
+
+  // bpm_admin no tiene companyId propio (administra empresas clientes desde
+  // /admin/companies), así que esta sección solo aplica a admin/supervisor/operario.
+  const loadCompany = useCallback(async () => {
+    if (!user?.companyId) return;
+    setCompanyError(null);
+    try {
+      const { company: data } = await api.get<{ company: Company }>("/companies/me");
+      setCompany(data);
+    } catch (err) {
+      setCompanyError(err instanceof ApiError ? err.message : "No se pudo cargar la información de la empresa.");
+    }
+  }, [user?.companyId]);
+
+  useEffect(() => {
+    loadCompany();
+  }, [loadCompany]);
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -80,6 +103,32 @@ export default function Configuración() {
               </div>
             </form>
           </div>
+
+          {user?.companyId && (
+            <>
+              {companyError && (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                  <span>{companyError}</span>
+                  <button
+                    type="button"
+                    onClick={loadCompany}
+                    className="inline-flex items-center gap-1.5 font-medium hover:underline shrink-0"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Reintentar
+                  </button>
+                </div>
+              )}
+              {company && (
+                <BusinessProfileFormsCard
+                  companyId={company.id}
+                  company={company}
+                  canEdit={user.role === "admin"}
+                  onCompanyChange={setCompany}
+                />
+              )}
+            </>
+          )}
 
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-red-100 dark:border-red-900/30 shadow-sm">
             <h2 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">Zona de Peligro</h2>

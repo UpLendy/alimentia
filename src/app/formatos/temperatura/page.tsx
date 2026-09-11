@@ -1,27 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Save, Thermometer, Plus, Trash2, Loader2, AlertCircle, Info } from "lucide-react";
 import Link from "next/link";
-import type { DailyFormShift } from "@/lib/api";
+import { api, type DailyFormShift, type Equipment } from "@/lib/api";
 import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 interface EquipoRow {
   id: number;
-  name: string;
+  equipmentId: string;
   time: string;
   temp: string;
 }
 
-let nextRowId = 3;
+let nextRowId = 1;
 
 export default function RegistroTemperatura() {
   const { user } = useAuth();
-  const [equipos, setEquipos] = useState<EquipoRow[]>([
-    { id: 1, name: "Nevera Principal (Carnes)", temp: "", time: "08:00" },
-    { id: 2, name: "Congelador 1", temp: "", time: "08:00" },
-  ]);
+  const [equipos, setEquipos] = useState<EquipoRow[]>([{ id: nextRowId++, equipmentId: "", temp: "", time: "08:00" }]);
 
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [shift, setShift] = useState<DailyFormShift | "">("");
@@ -41,12 +38,40 @@ export default function RegistroTemperatura() {
     submit,
   } = useDailyFormSubmit("temperatura");
 
-  const updateRow = (id: number, field: "name" | "time" | "temp", value: string) => {
+  // El catálogo de equipos vive por sede (equipmentId debe pertenecer a la
+  // misma sede del formato — lo valida CreateDailyFormUseCase), así que se
+  // recarga cada vez que cambia la sede seleccionada.
+  const [equipmentOptions, setEquipmentOptions] = useState<Equipment[]>([]);
+  const [equipmentError, setEquipmentError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!sedeId) {
+      setEquipmentOptions([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api.get<Equipment[]>("/equipment");
+        if (!cancelled) {
+          setEquipmentOptions(data.filter((eq) => eq.sedeId === sedeId));
+          setEquipmentError(null);
+        }
+      } catch {
+        if (!cancelled) setEquipmentError("No se pudo cargar el catálogo de equipos de esta sede.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sedeId]);
+
+  const updateRow = (id: number, field: "equipmentId" | "time" | "temp", value: string) => {
     setEquipos((rows) => rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
   };
 
   const addRow = () => {
-    setEquipos((rows) => [...rows, { id: nextRowId++, name: "", time: "08:00", temp: "" }]);
+    setEquipos((rows) => [...rows, { id: nextRowId++, equipmentId: "", time: "08:00", temp: "" }]);
   };
 
   const removeRow = (id: number) => {
@@ -62,7 +87,7 @@ export default function RegistroTemperatura() {
       payload: {
         responsable,
         equipos: equipos.map((row) => ({
-          name: row.name,
+          equipmentId: row.equipmentId,
           time: row.time,
           temp: Number(row.temp),
         })),
@@ -162,6 +187,17 @@ export default function RegistroTemperatura() {
             </span>
           </div>
 
+          {equipmentError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium">
+              {equipmentError}
+            </div>
+          )}
+          {sedeId && !equipmentError && equipmentOptions.length === 0 && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-400 px-4 py-3 rounded-xl text-sm">
+              Esta sede no tiene equipos registrados. Agrégalos primero en Infraestructura → Equipos.
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -176,14 +212,20 @@ export default function RegistroTemperatura() {
                 {equipos.map((equipo) => (
                   <tr key={equipo.id} className="group">
                     <td className="py-4">
-                      <input
-                        type="text"
+                      <select
                         required
-                        placeholder="Ej: Nevera Principal"
-                        value={equipo.name}
-                        onChange={(e) => updateRow(equipo.id, "name", e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-3 py-2 text-sm font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary transition-all"
-                      />
+                        value={equipo.equipmentId}
+                        onChange={(e) => updateRow(equipo.id, "equipmentId", e.target.value)}
+                        disabled={!sedeId || equipmentOptions.length === 0}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-3 py-2 text-sm font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary transition-all disabled:opacity-60"
+                      >
+                        <option value="" disabled>
+                          {sedeId ? "Selecciona un equipo" : "Selecciona primero una sede"}
+                        </option>
+                        {equipmentOptions.map((eq) => (
+                          <option key={eq.id} value={eq.id}>{eq.name}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="py-4">
                       <input

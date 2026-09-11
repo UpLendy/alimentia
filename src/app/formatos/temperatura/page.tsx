@@ -45,10 +45,7 @@ export default function RegistroTemperatura() {
   const [equipmentError, setEquipmentError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!sedeId) {
-      setEquipmentOptions([]);
-      return;
-    }
+    if (!sedeId) return;
     let cancelled = false;
     (async () => {
       try {
@@ -65,6 +62,10 @@ export default function RegistroTemperatura() {
       cancelled = true;
     };
   }, [sedeId]);
+
+  // Sin sede seleccionada no hay catálogo válido: se deriva en vez de
+  // resetear equipmentOptions vía efecto para evitar un render en cascada.
+  const visibleEquipmentOptions = sedeId ? equipmentOptions : [];
 
   const updateRow = (id: number, field: "equipmentId" | "time" | "temp", value: string) => {
     setEquipos((rows) => rows.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
@@ -192,7 +193,7 @@ export default function RegistroTemperatura() {
               {equipmentError}
             </div>
           )}
-          {sedeId && !equipmentError && equipmentOptions.length === 0 && (
+          {sedeId && !equipmentError && visibleEquipmentOptions.length === 0 && (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-400 px-4 py-3 rounded-xl text-sm">
               Esta sede no tiene equipos registrados. Agrégalos primero en Infraestructura → Equipos.
             </div>
@@ -216,13 +217,13 @@ export default function RegistroTemperatura() {
                         required
                         value={equipo.equipmentId}
                         onChange={(e) => updateRow(equipo.id, "equipmentId", e.target.value)}
-                        disabled={!sedeId || equipmentOptions.length === 0}
+                        disabled={!sedeId || visibleEquipmentOptions.length === 0}
                         className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-3 py-2 text-sm font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary transition-all disabled:opacity-60"
                       >
                         <option value="" disabled>
                           {sedeId ? "Selecciona un equipo" : "Selecciona primero una sede"}
                         </option>
-                        {equipmentOptions.map((eq) => (
+                        {visibleEquipmentOptions.map((eq) => (
                           <option key={eq.id} value={eq.id}>{eq.name}</option>
                         ))}
                       </select>

@@ -27,17 +27,17 @@ export default function Configuración() {
   // /admin/companies), así que esta sección solo aplica a admin/supervisor/operario.
   const loadCompany = useCallback(async () => {
     if (!user?.companyId) return;
-    setCompanyError(null);
     try {
       const { company: data } = await api.get<{ company: Company }>("/companies/me");
       setCompany(data);
+      setCompanyError(null);
     } catch (err) {
       setCompanyError(err instanceof ApiError ? err.message : "No se pudo cargar la información de la empresa.");
     }
   }, [user?.companyId]);
 
   useEffect(() => {
-    loadCompany();
+    queueMicrotask(loadCompany);
   }, [loadCompany]);
 
   return (

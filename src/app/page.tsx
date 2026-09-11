@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Clock, FileText, Activity, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/components/auth/AuthProvider";
 import {
   api,
   ApiError,
@@ -93,9 +95,21 @@ function AlertRowSkeleton() {
 }
 
 export default function Dashboard() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // El Dashboard resume la operación de UNA empresa cliente (companyId).
+  // bpm_admin (staff de BPM Consulting, companyId null) no tiene una
+  // empresa propia que resumir acá — su panel real es /admin/companies.
+  useEffect(() => {
+    if (isAuthLoading) return;
+    if (user?.role === "bpm_admin") {
+      router.replace("/admin/companies");
+    }
+  }, [isAuthLoading, user, router]);
 
   const loadSummary = useCallback(async () => {
     try {
@@ -110,10 +124,13 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    if (user?.role === "bpm_admin") return;
     (async () => {
       await loadSummary();
     })();
-  }, [loadSummary]);
+  }, [user, loadSummary]);
+
+  if (isAuthLoading || user?.role === "bpm_admin") return null;
 
   const retry = () => {
     setIsLoading(true);

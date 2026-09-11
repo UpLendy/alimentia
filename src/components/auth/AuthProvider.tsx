@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import {
+  getCurrentUser,
   loginRequest,
   logoutRequest,
   refreshSession,
@@ -55,6 +56,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(JSON.parse(storedUser) as AuthUser);
           } catch {
             sessionStorage.removeItem(USER_KEY);
+          }
+        } else {
+          // Hay un token/cookie de sesión válido pero esta pestaña no tiene
+          // el perfil cacheado (pestaña nueva, o URL pegada directo sin
+          // haber iniciado sesión en esta pestaña): recupera el perfil del
+          // backend en vez de tratar la sesión como cerrada.
+          try {
+            const profile = await getCurrentUser();
+            sessionStorage.setItem(USER_KEY, JSON.stringify(profile));
+            setUser(profile);
+          } catch {
+            setAccessToken(null);
           }
         }
       } else {

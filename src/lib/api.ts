@@ -127,6 +127,9 @@ export interface Equipment {
   lastCalibrationDate: string | null;
   calibrationFrequency: CalibrationFrequency;
   nextCalibrationDate: string | null;
+  minTemp: string | null;
+  maxTemp: string | null;
+  active: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -179,6 +182,42 @@ export interface DailyForm {
   observations: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// Filtros para GET /daily-forms (historial de solo lectura, ver
+// src/app/formatos/historial). sedeId solo tiene efecto para roles con
+// acceso a toda la empresa (admin) — un operario/supervisor ya está
+// restringido a su propia sede por el backend.
+export interface DailyFormFilters {
+  formType?: DailyFormType;
+  from?: string;
+  to?: string;
+  sedeId?: string;
+}
+
+export type NotificationChannel = "push" | "whatsapp" | "email";
+export type NotificationStatus = "pendiente" | "enviada" | "leida" | "fallida";
+
+// GET /notifications no tiene filtros de query: trae todas las de la
+// empresa/sede del usuario. Se usa en el historial de formatos para marcar
+// qué envíos de temperatura/agua dispararon una alerta de rango fuera de
+// límite (type: "rango_fuera_de_limite", referenceTable: "daily_forms",
+// referenceId: el id del DailyForm).
+export interface Notification {
+  id: string;
+  companyId: string;
+  sedeId: string | null;
+  userId: string | null;
+  type: string;
+  referenceTable: string | null;
+  referenceId: string | null;
+  title: string;
+  message: string;
+  dueDate: string | null;
+  channel: NotificationChannel;
+  status: NotificationStatus;
+  sentAt: string | null;
+  createdAt: string;
 }
 
 export type DocumentStatus = "borrador" | "en_revision" | "vigente" | "vencido";
@@ -310,6 +349,8 @@ export interface Incident {
   createdAt: string;
 }
 
+export type BusinessProfile = "restaurante_general" | "carnicos" | "bodega_almacenamiento" | "fabrica";
+
 export interface Company {
   id: string;
   name: string;
@@ -320,11 +361,19 @@ export interface Company {
   logoUrl: string | null;
   plan: string;
   status: "activo" | "suspendido" | "prueba";
-  businessProfile: string;
+  businessProfile: BusinessProfile;
   sedesIncluded: number;
   billingAnnualPrepay: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// GET/PATCH /companies/:companyId/enabled-forms: qué formatos diarios (de
+// los 10 tipos) tiene habilitados una empresa. El PATCH recibe siempre el
+// set COMPLETO de tipos habilitados, no un toggle individual.
+export interface CompanyDailyFormStatus {
+  formType: DailyFormType;
+  enabled: boolean;
 }
 
 export type ChecklistPriority = "baja" | "media" | "alta";
@@ -461,6 +510,15 @@ export async function logoutRequest(): Promise<void> {
     method: "POST",
     credentials: "include",
   }).catch(() => {});
+}
+
+// Repone el perfil del usuario cuando hay un access token válido pero no
+// hay perfil cacheado en sessionStorage de esta pestaña (p. ej. se abrió
+// una pestaña nueva, o se pegó una URL directo, con una sesión que ya
+// existía en otra pestaña del mismo navegador).
+export async function getCurrentUser(): Promise<AuthUser> {
+  const { user } = await apiFetch<{ user: AuthUser }>("/auth/me");
+  return user;
 }
 
 let refreshPromise: Promise<string | null> | null = null;

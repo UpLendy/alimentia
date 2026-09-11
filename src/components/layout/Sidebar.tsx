@@ -35,6 +35,7 @@ const navigation = [
 const bpmAdminNavigation = [
   { name: "Checklist Maestro", href: "/admin/checklist", icon: ListChecks },
   { name: "Tickets", href: "/admin/tickets", icon: MessageSquareWarning },
+  { name: "Empresas", href: "/admin/companies", icon: Building2 },
 ];
 
 interface SidebarProps {
@@ -93,12 +94,17 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
       
       <div className="flex-1 overflow-y-auto py-6 px-4">
-        <nav className="space-y-1.5">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
-            return <NavLink key={item.name} item={item} isActive={!!isActive} />;
-          })}
-        </nav>
+        {/* bpm_admin es staff de BPM Consulting (companyId null): no
+            pertenece a ninguna empresa cliente y no debe ver ni usar estas
+            funciones (Personal, Formatos Diarios, etc. son de una empresa). */}
+        {user?.role !== "bpm_admin" && (
+          <nav className="space-y-1.5">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
+              return <NavLink key={item.name} item={item} isActive={!!isActive} />;
+            })}
+          </nav>
+        )}
 
         {user?.role === "bpm_admin" && (
           <>

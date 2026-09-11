@@ -26,7 +26,7 @@ export default function HistorialFormatos() {
 
   const [forms, setForms] = useState<DailyForm[] | null>(null);
   const [alertedIds, setAlertedIds] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,40 +40,62 @@ export default function HistorialFormatos() {
     })();
   }, []);
 
+  const doSearch = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (formType) params.set("formType", formType);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    if (sedeId) params.set("sedeId", sedeId);
+    const qs = params.toString();
+
+    const [formsData, notificationsData] = await Promise.all([
+      api.get<DailyForm[]>(`/daily-forms${qs ? `?${qs}` : ""}`),
+      api.get<Notification[]>("/notifications").catch(() => [] as Notification[]),
+    ]);
+
+    setForms(formsData);
+    setAlertedIds(
+      new Set(
+        notificationsData
+          .filter((n) => n.type === "rango_fuera_de_limite" && n.referenceTable === "daily_forms" && n.referenceId)
+          .map((n) => n.referenceId as string),
+      ),
+    );
+  }, [formType, from, to, sedeId]);
+
+  // Usado por el botón "Buscar": da feedback inmediato (loading/error) al clic.
   const search = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (formType) params.set("formType", formType);
-      if (from) params.set("from", from);
-      if (to) params.set("to", to);
-      if (sedeId) params.set("sedeId", sedeId);
-      const qs = params.toString();
-
-      const [formsData, notificationsData] = await Promise.all([
-        api.get<DailyForm[]>(`/daily-forms${qs ? `?${qs}` : ""}`),
-        api.get<Notification[]>("/notifications").catch(() => [] as Notification[]),
-      ]);
-
-      setForms(formsData);
-      setAlertedIds(
-        new Set(
-          notificationsData
-            .filter((n) => n.type === "rango_fuera_de_limite" && n.referenceTable === "daily_forms" && n.referenceId)
-            .map((n) => n.referenceId as string),
-        ),
-      );
+      await doSearch();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar el historial.");
       setForms(null);
     } finally {
       setIsLoading(false);
     }
-  }, [formType, from, to, sedeId]);
+  }, [doSearch]);
 
+  // Búsqueda inicial al montar: isLoading ya arranca en true, así que no hace
+  // falta resetear estado de forma síncrona en el efecto (evita cascading
+  // render).
   useEffect(() => {
-    search();
+    let cancelled = false;
+    queueMicrotask(() => {
+      doSearch()
+        .catch((err) => {
+          if (cancelled) return;
+          setError(err instanceof ApiError ? err.message : "No se pudo cargar el historial.");
+          setForms(null);
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

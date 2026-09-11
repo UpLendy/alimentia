@@ -124,23 +124,30 @@ export function BusinessProfileFormsCard({
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingFormType, setSavingFormType] = useState<DailyFormType | null>(null);
 
-  useEffect(() => {
+  // La empresa mostrada puede cambiar sin desmontar el componente (p.ej. al
+  // elegir otra empresa en /admin/companies), así que businessProfile y forms
+  // deben resincronizarse. Se ajusta durante el render (patrón oficial de
+  // React para "adjusting state when a prop changes") en vez de en un
+  // efecto, para no disparar un render en cascada.
+  const [prevCompanyId, setPrevCompanyId] = useState(companyId);
+  if (companyId !== prevCompanyId) {
+    setPrevCompanyId(companyId);
     setBusinessProfile(company.businessProfile);
-  }, [company.id, company.businessProfile]);
+    setForms(null);
+  }
 
   const loadForms = useCallback(async () => {
-    setError(null);
     try {
       const data = await api.get<CompanyDailyFormStatus[]>(`/companies/${companyId}/enabled-forms`);
       setForms(data);
+      setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudieron cargar los formatos activos.");
     }
   }, [companyId]);
 
   useEffect(() => {
-    setForms(null);
-    loadForms();
+    queueMicrotask(loadForms);
   }, [companyId, loadForms]);
 
   const handleBusinessProfileChange = async (value: BusinessProfile) => {

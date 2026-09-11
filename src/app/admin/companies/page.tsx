@@ -27,11 +27,11 @@ export default function AdminCompaniesPage() {
   }, [isAuthLoading, user, router]);
 
   const loadCompanies = useCallback(async () => {
-    setError(null);
     try {
       const data = await api.get<Company[]>("/companies");
       setCompanies(data);
       setCompanyId((current) => current || data[0]?.id || "");
+      setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudieron cargar las empresas.");
     }
@@ -39,7 +39,7 @@ export default function AdminCompaniesPage() {
 
   useEffect(() => {
     if (user?.role !== "bpm_admin") return;
-    loadCompanies();
+    queueMicrotask(loadCompanies);
   }, [user, loadCompanies]);
 
   // Ver comentario del guard arriba: esto bloquea también el render mientras

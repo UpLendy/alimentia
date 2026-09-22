@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Wrench, ArrowLeft, Save, Loader2 } from "lucide-react";
+import { Wrench, ArrowLeft, Save, Loader2, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError, type CalibrationFrequency, type Equipment, type Sede } from "@/lib/api";
+import { useZones } from "@/hooks/useZones";
 
 export default function NuevoEquipo() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function NuevoEquipo() {
 
   const [name, setName] = useState("");
   const [brandModel, setBrandModel] = useState("");
-  const [locationArea, setLocationArea] = useState("Recepción de Materias Primas");
+  const [locationArea, setLocationArea] = useState("");
   const [serial, setSerial] = useState("");
   const [lastCalibrationDate, setLastCalibrationDate] = useState("");
   const [calibrationFrequency, setCalibrationFrequency] = useState<CalibrationFrequency>("semestral");
@@ -39,6 +40,12 @@ export default function NuevoEquipo() {
       await loadSedes();
     })();
   }, [loadSedes]);
+
+  const { zones, zonesLoading, zonesError } = useZones(selectedSedeId);
+
+  useEffect(() => {
+    setLocationArea((prev) => (zones.some((z) => z.name === prev) ? prev : ""));
+  }, [zones]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,16 +155,41 @@ export default function NuevoEquipo() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Ubicación / Área</label>
-              <select
-                value={locationArea}
-                onChange={(e) => setLocationArea(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500 transition-all"
-              >
-                <option>Recepción de Materias Primas</option>
-                <option>Cuarto Frío de Carnes</option>
-                <option>Área de Preparación</option>
-                <option>Bodega Principal</option>
-              </select>
+              {!selectedSedeId ? (
+                <select disabled className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none opacity-60">
+                  <option>Selecciona una sede primero</option>
+                </select>
+              ) : zonesLoading ? (
+                <div className="flex items-center gap-2 px-4 py-2 text-sm text-slate-500 dark:text-slate-400">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Cargando zonas...
+                </div>
+              ) : zonesError ? (
+                <div className="text-sm text-red-600 dark:text-red-400">{zonesError}</div>
+              ) : zones.length === 0 ? (
+                <div className="text-xs text-amber-800 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg px-3 py-2 flex items-start gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    Esta sede no tiene zonas creadas.{" "}
+                    <Link href="/settings" className="underline font-semibold">
+                      Créalas primero en Configuración
+                    </Link>
+                    .
+                  </span>
+                </div>
+              ) : (
+                <select
+                  value={locationArea}
+                  onChange={(e) => setLocationArea(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                >
+                  <option value="">Sin especificar</option>
+                  {zones.map((z) => (
+                    <option key={z.id} value={z.name}>
+                      {z.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Identificador / Serial</label>

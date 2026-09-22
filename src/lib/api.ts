@@ -113,6 +113,27 @@ export interface Sede {
   updatedAt: string;
 }
 
+export interface Zone {
+  id: string;
+  companyId: string;
+  sedeId: string;
+  name: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewZoneInput {
+  sedeId: string;
+  name: string;
+}
+
+export interface UpdateZoneInput {
+  sedeId?: string;
+  name?: string;
+  active?: boolean;
+}
+
 export type CalibrationFrequency = "semestral" | "anual" | "bianual";
 export type CalibrationStatus = "vigente" | "por_vencer" | "vencido";
 

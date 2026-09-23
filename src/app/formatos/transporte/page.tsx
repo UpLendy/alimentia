@@ -14,6 +14,7 @@ export default function FormatoTransporte() {
   const [limpiezaInterior, setLimpiezaInterior] = useState(true);
   const [ausenciaOlores, setAusenciaOlores] = useState(true);
   const [temperaturaFurgon, setTemperaturaFurgon] = useState("");
+  const [temperaturaNoAplica, setTemperaturaNoAplica] = useState(false);
   const [observations, setObservations] = useState("");
 
   const {
@@ -40,7 +41,7 @@ export default function FormatoTransporte() {
         conductor,
         limpiezaInterior,
         ausenciaOlores,
-        temperaturaFurgon: temperaturaFurgon ? Number(temperaturaFurgon) : undefined,
+        temperaturaFurgon: temperaturaNoAplica ? "no_aplica" : temperaturaFurgon ? Number(temperaturaFurgon) : undefined,
       },
     });
   };
@@ -162,14 +163,29 @@ export default function FormatoTransporte() {
 
           <div className="space-y-2 mt-4">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Temperatura del Furgón (°C)</label>
-            <input
-              type="number"
-              step="0.1"
-              placeholder="Ej. -18.0"
-              value={temperaturaFurgon}
-              onChange={(e) => setTemperaturaFurgon(e.target.value)}
-              className="w-full md:w-1/3 bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none"
-            />
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Ej. -18.0"
+                disabled={temperaturaNoAplica}
+                value={temperaturaFurgon}
+                onChange={(e) => setTemperaturaFurgon(e.target.value)}
+                className="w-full md:w-1/3 bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={temperaturaNoAplica}
+                  onChange={(e) => {
+                    setTemperaturaNoAplica(e.target.checked);
+                    if (e.target.checked) setTemperaturaFurgon("");
+                  }}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                />
+                No aplica (vehículo sin cadena de frío)
+              </label>
+            </div>
           </div>
         </div>
 

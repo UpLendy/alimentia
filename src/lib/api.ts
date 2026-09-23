@@ -321,6 +321,7 @@ export interface NewScheduledEventInput {
 export type NonConformitySeverity = "baja" | "media" | "alta";
 export type NonConformityStatus = "abierta" | "en_proceso" | "cerrada";
 export type NonConformitySourceType = "manual" | "formato" | "auditoria";
+export type ContaminationType = "fisica" | "quimica" | "biologica";
 
 export interface NonConformity {
   id: string;
@@ -330,6 +331,7 @@ export interface NonConformity {
   sourceReferenceId: string | null;
   description: string;
   severity: NonConformitySeverity;
+  contaminationType: ContaminationType | null;
   correctiveAction: string | null;
   responsibleUserId: string | null;
   dueDate: string | null;
@@ -349,6 +351,7 @@ export interface NewNonConformityInput {
   sourceReferenceId?: string;
   description: string;
   severity?: NonConformitySeverity;
+  contaminationType?: ContaminationType | null;
   correctiveAction?: string;
   responsibleUserId?: string;
   dueDate?: string;

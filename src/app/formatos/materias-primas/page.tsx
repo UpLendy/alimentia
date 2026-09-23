@@ -13,6 +13,7 @@ interface ProductoRow {
   loteOVencimiento: string;
   cantidad: string;
   temperatura: string;
+  temperaturaNoAplica: boolean;
   empaqueOk: boolean;
   estado: "ok" | "rechazado";
 }
@@ -20,7 +21,16 @@ interface ProductoRow {
 let nextRowId = 1;
 
 function emptyRow(): ProductoRow {
-  return { id: nextRowId++, producto: "", loteOVencimiento: "", cantidad: "", temperatura: "", empaqueOk: true, estado: "ok" };
+  return {
+    id: nextRowId++,
+    producto: "",
+    loteOVencimiento: "",
+    cantidad: "",
+    temperatura: "",
+    temperaturaNoAplica: false,
+    empaqueOk: true,
+    estado: "ok",
+  };
 }
 
 export default function FormatoMateriasPrimas() {
@@ -67,7 +77,7 @@ export default function FormatoMateriasPrimas() {
           producto: row.producto,
           loteOVencimiento: row.loteOVencimiento || undefined,
           cantidad: row.cantidad,
-          temperatura: row.temperatura ? Number(row.temperatura) : undefined,
+          temperatura: row.temperaturaNoAplica ? "no_aplica" : row.temperatura ? Number(row.temperatura) : undefined,
           empaqueOk: row.empaqueOk,
           estado: row.estado,
         })),
@@ -228,15 +238,28 @@ export default function FormatoMateriasPrimas() {
                       className="w-full bg-white dark:bg-slate-900 border border-border rounded px-2 py-1.5 text-sm outline-none"
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-1">
                     <input
                       type="number"
                       step="0.1"
                       placeholder="Ej: 4.0"
+                      disabled={item.temperaturaNoAplica}
                       value={item.temperatura}
                       onChange={(e) => updateRow(item.id, "temperatura", e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-border rounded px-2 py-1.5 text-sm outline-none"
+                      className="w-full bg-white dark:bg-slate-900 border border-border rounded px-2 py-1.5 text-sm outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                     />
+                    <label className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={item.temperaturaNoAplica}
+                        onChange={(e) => {
+                          updateRow(item.id, "temperaturaNoAplica", e.target.checked);
+                          if (e.target.checked) updateRow(item.id, "temperatura", "");
+                        }}
+                        className="w-3.5 h-3.5 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                      />
+                      No aplica
+                    </label>
                   </div>
                   <div className="col-span-1 text-center">
                     <input

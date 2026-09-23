@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowLeft, Save, UserCheck, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Save, UserCheck, Loader2, AlertCircle, CheckCircle2, Users } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import type { DailyFormShift } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { api, ApiError, type DailyFormShift, type EmployeeWithStatus } from "@/lib/api";
 import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -33,6 +33,7 @@ const CHECKLIST_ITEMS: { field: ChecklistField; label: string }[] = [
 ];
 
 interface EmpleadoRow {
+  employeeId: string;
   nombre: string;
   uniformeLimpio: Cumplimiento;
   unasLimpias: Cumplimiento;
@@ -46,9 +47,10 @@ interface EmpleadoRow {
   observaciones: string;
 }
 
-function initialRows(): EmpleadoRow[] {
-  return ["María Rodríguez", "Carlos Gómez", "Ana Martínez", "Luis Fernando"].map((nombre) => ({
-    nombre,
+function rowFromEmployee(employee: EmployeeWithStatus): EmpleadoRow {
+  return {
+    employeeId: employee.id,
+    nombre: employee.fullName,
     uniformeLimpio: "cumple",
     unasLimpias: "cumple",
     sinJoyas: "cumple",
@@ -59,12 +61,14 @@ function initialRows(): EmpleadoRow[] {
     sinMaquillaje: "cumple",
     usoTapabocas: "cumple",
     observaciones: "",
-  }));
+  };
 }
 
 export default function FormatoHigiene() {
   const { user } = useAuth();
-  const [empleados, setEmpleados] = useState<EmpleadoRow[]>(initialRows);
+  const [empleados, setEmpleados] = useState<EmpleadoRow[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [employeesError, setEmployeesError] = useState<string | null>(null);
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [shift, setShift] = useState<DailyFormShift | "">("");
   const [auditor, setAuditor] = useState(() => user?.fullName ?? "");
@@ -83,6 +87,37 @@ export default function FormatoHigiene() {
     submit,
   } = useDailyFormSubmit("higiene");
 
+  // GET /employees ya filtra por activos y, si el usuario tiene una sede fija
+  // (operario/supervisor), por esa sede. Para admin/bpm_admin (sin sede fija,
+  // de ahí el selector de sede de arriba) devuelve empleados de toda la
+  // empresa, así que igual filtramos por la sede seleccionada en el cliente.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!sedeId) {
+        setEmpleados([]);
+        return;
+      }
+      setEmployeesLoading(true);
+      setEmployeesError(null);
+      try {
+        const data = await api.get<EmployeeWithStatus[]>("/employees");
+        if (cancelled) return;
+        const deLaSede = data.filter((employee) => employee.sedeId === sedeId);
+        setEmpleados(deLaSede.map(rowFromEmployee));
+      } catch (err) {
+        if (cancelled) return;
+        setEmployeesError(err instanceof ApiError ? err.message : "No se pudieron cargar los empleados.");
+        setEmpleados([]);
+      } finally {
+        if (!cancelled) setEmployeesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sedeId]);
+
   const updateRow = (idx: number, field: keyof EmpleadoRow, value: string) => {
     setEmpleados((rows) => rows.map((row, i) => (i === idx ? { ...row, [field]: value } : row)));
   };
@@ -96,6 +131,7 @@ export default function FormatoHigiene() {
       payload: {
         auditor,
         empleados: empleados.map((row) => ({
+          employeeId: row.employeeId,
           nombre: row.nombre,
           uniformeLimpio: row.uniformeLimpio,
           unasLimpias: row.unasLimpias,
@@ -196,50 +232,84 @@ export default function FormatoHigiene() {
         </div>
 
         <div className="space-y-4">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-b border-border">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Empleado</th>
-                  {CHECKLIST_ITEMS.map((item) => (
-                    <th key={item.field} className="px-4 py-3 font-semibold text-center">
-                      {item.label}
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 font-semibold">Observaciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {empleados.map((row, idx) => (
-                  <tr key={row.nombre} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{row.nombre}</td>
+          {!sedeId && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-border rounded-xl px-4 py-6 text-sm text-slate-500 dark:text-slate-400 text-center">
+              Selecciona una sede para ver sus empleados.
+            </div>
+          )}
+
+          {sedeId && employeesLoading && (
+            <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Cargando empleados de la sede...
+            </div>
+          )}
+
+          {sedeId && !employeesLoading && employeesError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {employeesError}
+            </div>
+          )}
+
+          {sedeId && !employeesLoading && !employeesError && empleados.length === 0 && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-400 px-4 py-6 rounded-xl text-sm font-medium text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Users className="w-4 h-4 shrink-0" />
+                No hay empleados registrados en esta sede, agrégalos primero en Personal.
+              </div>
+              <Link href="/personal" className="inline-block text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">
+                Ir a Personal
+              </Link>
+            </div>
+          )}
+
+          {sedeId && !employeesLoading && !employeesError && empleados.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-b border-border">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Empleado</th>
                     {CHECKLIST_ITEMS.map((item) => (
-                      <td key={item.field} className="px-4 py-3 text-center">
-                        <select
-                          value={row[item.field]}
-                          onChange={(e) => updateRow(idx, item.field, e.target.value)}
-                          className="bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                        >
-                          <option value="cumple">Cumple</option>
-                          <option value="no_cumple">No Cumple</option>
-                          <option value="no_aplica">No Aplica</option>
-                        </select>
-                      </td>
+                      <th key={item.field} className="px-4 py-3 font-semibold text-center">
+                        {item.label}
+                      </th>
                     ))}
-                    <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        placeholder="Opcional..."
-                        value={row.observaciones}
-                        onChange={(e) => updateRow(idx, "observaciones", e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded px-2 py-1 text-sm outline-none"
-                      />
-                    </td>
+                    <th className="px-4 py-3 font-semibold">Observaciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {empleados.map((row, idx) => (
+                    <tr key={row.employeeId} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                      <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{row.nombre}</td>
+                      {CHECKLIST_ITEMS.map((item) => (
+                        <td key={item.field} className="px-4 py-3 text-center">
+                          <select
+                            value={row[item.field]}
+                            onChange={(e) => updateRow(idx, item.field, e.target.value)}
+                            className="bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                          >
+                            <option value="cumple">Cumple</option>
+                            <option value="no_cumple">No Cumple</option>
+                            <option value="no_aplica">No Aplica</option>
+                          </select>
+                        </td>
+                      ))}
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          placeholder="Opcional..."
+                          value={row.observaciones}
+                          onChange={(e) => updateRow(idx, "observaciones", e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded px-2 py-1 text-sm outline-none"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -281,7 +351,7 @@ export default function FormatoHigiene() {
         <div className="pt-4 border-t border-border flex justify-end">
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || empleados.length === 0}
             className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm shadow-indigo-500/30 flex items-center gap-2"
           >
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}

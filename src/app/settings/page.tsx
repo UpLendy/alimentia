@@ -6,6 +6,7 @@ import { Settings, User, Bell, Shield, LogOut, RefreshCw } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { api, ApiError, type Company } from "@/lib/api";
 import { BusinessProfileFormsCard } from "@/components/company/BusinessProfileFormsCard";
+import { ZonesCard } from "@/components/company/ZonesCard";
 
 export default function Configuración() {
   const { user, logout } = useAuth();
@@ -127,6 +128,7 @@ export default function Configuración() {
                   onCompanyChange={setCompany}
                 />
               )}
+              <ZonesCard canEdit={user.role === "admin"} />
             </>
           )}
 

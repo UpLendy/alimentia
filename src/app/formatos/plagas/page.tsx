@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Bug, ArrowLeft, Save, Info, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Bug, ArrowLeft, Save, Info, Loader2, AlertCircle, CheckCircle2, MapPin } from "lucide-react";
 import Link from "next/link";
 import type { DailyFormShift } from "@/lib/api";
 import { useDailyFormSubmit } from "@/hooks/useDailyFormSubmit";
-
-const AREAS = ["Área de Recepción", "Almacén de Secos", "Cuartos Fríos", "Área de Preparación", "Zona de Basuras"];
+import { useZones } from "@/hooks/useZones";
 
 export default function FormatoPlagas() {
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -27,6 +26,8 @@ export default function FormatoPlagas() {
     submit,
   } = useDailyFormSubmit("plagas");
 
+  const { zones, zonesLoading, zonesError } = useZones(sedeId);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await submit({
@@ -34,7 +35,7 @@ export default function FormatoPlagas() {
       shift,
       observations,
       payload: {
-        areas: AREAS.map((area) => ({ area, evidencia: evidencias[area] ?? false })),
+        areas: zones.map((zone) => ({ area: zone.name, evidencia: evidencias[zone.name] ?? false })),
       },
     });
   };
@@ -122,36 +123,70 @@ export default function FormatoPlagas() {
         <div className="space-y-6">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white border-b border-border pb-2">Lista de Chequeo de Áreas</h3>
 
-          <div className="space-y-4">
-            {AREAS.map((area) => (
-              <div key={area} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border/50 gap-4">
-                <span className="font-medium text-slate-700 dark:text-slate-300">{area}</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-slate-500">¿Evidencia de plagas?</span>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name={`area-${area}`}
-                      checked={!evidencias[area]}
-                      onChange={() => setEvidencias((prev) => ({ ...prev, [area]: false }))}
-                      className="text-emerald-500 focus:ring-emerald-500"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">No</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name={`area-${area}`}
-                      checked={!!evidencias[area]}
-                      onChange={() => setEvidencias((prev) => ({ ...prev, [area]: true }))}
-                      className="text-red-500 focus:ring-red-500"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">Sí</span>
-                  </label>
-                </div>
+          {!sedeId && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-border rounded-xl px-4 py-6 text-sm text-slate-500 dark:text-slate-400 text-center">
+              Selecciona una sede para ver sus zonas.
+            </div>
+          )}
+
+          {sedeId && zonesLoading && (
+            <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Cargando zonas...
+            </div>
+          )}
+
+          {sedeId && !zonesLoading && zonesError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {zonesError}
+            </div>
+          )}
+
+          {sedeId && !zonesLoading && !zonesError && zones.length === 0 && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-400 px-4 py-6 rounded-xl text-sm font-medium text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <MapPin className="w-4 h-4 shrink-0" />
+                Esta sede todavía no tiene zonas creadas, agrégalas primero en Configuración.
               </div>
-            ))}
-          </div>
+              <Link href="/settings" className="inline-block text-emerald-600 dark:text-emerald-400 hover:underline font-semibold">
+                Ir a Configuración
+              </Link>
+            </div>
+          )}
+
+          {sedeId && !zonesLoading && !zonesError && zones.length > 0 && (
+            <div className="space-y-4">
+              {zones.map((zone) => (
+                <div key={zone.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-border/50 gap-4">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{zone.name}</span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-slate-500">¿Evidencia de plagas?</span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`area-${zone.id}`}
+                        checked={!evidencias[zone.name]}
+                        onChange={() => setEvidencias((prev) => ({ ...prev, [zone.name]: false }))}
+                        className="text-emerald-500 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">No</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`area-${zone.id}`}
+                        checked={!!evidencias[zone.name]}
+                        onChange={() => setEvidencias((prev) => ({ ...prev, [zone.name]: true }))}
+                        className="text-red-500 focus:ring-red-500"
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">Sí</span>
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -193,7 +228,7 @@ export default function FormatoPlagas() {
         <div className="pt-4 border-t border-border flex justify-end">
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || zones.length === 0}
             className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm shadow-emerald-500/30 flex items-center gap-2"
           >
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}

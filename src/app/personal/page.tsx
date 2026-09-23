@@ -233,6 +233,8 @@ function TrainingsModal({
                   type="number"
                   min={0}
                   max={100}
+                  step="0.1"
+                  placeholder="Ej: 87.5"
                   value={evaluationScore}
                   onChange={(e) => setEvaluationScore(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-border rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"

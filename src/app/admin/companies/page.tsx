@@ -2,10 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, RefreshCw } from "lucide-react";
+import { Building2, Plus, RefreshCw } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { api, ApiError, type Company } from "@/lib/api";
+import { api, ApiError, type Company, type CreateCompanyResult } from "@/lib/api";
 import { BusinessProfileFormsCard } from "@/components/company/BusinessProfileFormsCard";
+import { CompanyPlanStatusCard } from "@/components/company/CompanyPlanStatusCard";
+import { CreateCompanyModal } from "@/components/company/CreateCompanyModal";
+import { GeneratedCredentialsPanel } from "@/components/company/GeneratedCredentialsPanel";
+
+interface GeneratedCredentials {
+  companyName: string;
+  email: string;
+  password: string;
+}
 
 export default function AdminCompaniesPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -14,6 +23,8 @@ export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<Company[] | null>(null);
   const [companyId, setCompanyId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [credentials, setCredentials] = useState<GeneratedCredentials | null>(null);
 
   // Precedente existente (Checklist Maestro, src/app/admin/checklist/page.tsx)
   // solo oculta el link del sidebar y deja la ruta accesible por URL directa.
@@ -26,11 +37,15 @@ export default function AdminCompaniesPage() {
     }
   }, [isAuthLoading, user, router]);
 
-  const loadCompanies = useCallback(async () => {
+  const loadCompanies = useCallback(async (preferredId?: string) => {
     try {
       const data = await api.get<Company[]>("/companies");
       setCompanies(data);
-      setCompanyId((current) => current || data[0]?.id || "");
+      if (preferredId) {
+        setCompanyId(preferredId);
+      } else {
+        setCompanyId((current) => current || data[0]?.id || "");
+      }
       setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudieron cargar las empresas.");
@@ -52,16 +67,36 @@ export default function AdminCompaniesPage() {
     setCompanies((prev) => prev?.map((c) => (c.id === updated.id ? updated : c)) ?? prev);
   };
 
+  const handleCreateSuccess = (result: CreateCompanyResult) => {
+    setIsCreateOpen(false);
+    setCredentials({
+      companyName: result.company.name,
+      email: result.adminUser.email,
+      password: result.generatedPassword,
+    });
+    loadCompanies(result.company.id);
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-          <Building2 className="w-8 h-8" />
-          Empresas
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Administra el perfil de negocio y los formatos activos de cualquier empresa cliente.
-        </p>
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+            <Building2 className="w-8 h-8" />
+            Empresas
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Administra el perfil de negocio y los formatos activos de cualquier empresa cliente.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsCreateOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Nueva empresa
+        </button>
       </header>
 
       {error && (
@@ -69,7 +104,7 @@ export default function AdminCompaniesPage() {
           <span>{error}</span>
           <button
             type="button"
-            onClick={loadCompanies}
+            onClick={() => loadCompanies()}
             className="inline-flex items-center gap-1.5 font-medium hover:underline shrink-0"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -97,11 +132,31 @@ export default function AdminCompaniesPage() {
       </div>
 
       {selectedCompany && (
-        <BusinessProfileFormsCard
-          companyId={selectedCompany.id}
-          company={selectedCompany}
-          canEdit={true}
-          onCompanyChange={handleCompanyChange}
+        <>
+          <CompanyPlanStatusCard
+            companyId={selectedCompany.id}
+            company={selectedCompany}
+            onCompanyChange={handleCompanyChange}
+          />
+          <BusinessProfileFormsCard
+            companyId={selectedCompany.id}
+            company={selectedCompany}
+            canEdit={true}
+            onCompanyChange={handleCompanyChange}
+          />
+        </>
+      )}
+
+      {isCreateOpen && (
+        <CreateCompanyModal onClose={() => setIsCreateOpen(false)} onSuccess={handleCreateSuccess} />
+      )}
+
+      {credentials && (
+        <GeneratedCredentialsPanel
+          companyName={credentials.companyName}
+          email={credentials.email}
+          password={credentials.password}
+          onClose={() => setCredentials(null)}
         />
       )}
     </div>

@@ -374,6 +374,8 @@ export interface Incident {
 }
 
 export type BusinessProfile = "restaurante_general" | "carnicos" | "bodega_almacenamiento" | "fabrica";
+export type CompanyPlan = "basico" | "pro" | "plus";
+export type CompanyStatus = "activo" | "suspendido" | "prueba";
 
 export interface Company {
   id: string;
@@ -383,13 +385,54 @@ export interface Company {
   phone: string | null;
   address: string | null;
   logoUrl: string | null;
-  plan: string;
-  status: "activo" | "suspendido" | "prueba";
+  plan: CompanyPlan;
+  status: CompanyStatus;
   businessProfile: BusinessProfile;
   sedesIncluded: number;
   billingAnnualPrepay: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// POST /companies (solo bpm_admin): crea empresa + primera sede + usuario
+// admin inicial + formatos por defecto según businessProfile. admin es el
+// único sub-objeto requerido; el resto de campos son opcionales y el
+// backend aplica sus propios defaults (plan "basico", businessProfile
+// "restaurante_general", status "prueba", sede.name "Principal").
+export interface NewCompanyInput {
+  name: string;
+  nit?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  plan?: CompanyPlan;
+  businessProfile?: BusinessProfile;
+  status?: CompanyStatus;
+  sede?: {
+    name?: string;
+    address?: string;
+    city?: string;
+  };
+  admin: {
+    fullName: string;
+    email: string;
+  };
+}
+
+export interface CompanyAdminUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+}
+
+// generatedPassword va al mismo nivel que company/sede/adminUser (no
+// anidado) y es la única vez que el backend la devuelve en texto plano.
+export interface CreateCompanyResult {
+  company: Company;
+  sede: Sede;
+  adminUser: CompanyAdminUser;
+  generatedPassword: string;
 }
 
 // GET/PATCH /companies/:companyId/enabled-forms: qué formatos diarios (de
@@ -499,9 +542,13 @@ async function parseJsonOrNull(res: Response): Promise<unknown> {
 }
 
 function extractErrorMessage(data: unknown, status: number): string {
-  return data && typeof data === "object" && "error" in data
-    ? String((data as { error: string }).error)
-    : `Error ${status}`;
+  if (!data || typeof data !== "object") return `Error ${status}`;
+  if ("error" in data) return String((data as { error: string }).error);
+  // Las validaciones de esquema (TypeBox) de Elysia en POST/PATCH /companies
+  // no pasan por mapError y devuelven 422 con forma { message, summary, ... }
+  // en vez de { error }.
+  if ("message" in data) return String((data as { message: string }).message);
+  return `Error ${status}`;
 }
 
 function extractErrorDetails(data: unknown): ValidationErrorDetail[] | undefined {
@@ -534,6 +581,34 @@ export async function logoutRequest(): Promise<void> {
     method: "POST",
     credentials: "include",
   }).catch(() => {});
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
+// Igual que login, pasa por el Route Handler (no por apiFetch directo al
+// backend): el backend rota el refresh token al cambiar la contraseña y
+// solo el BFF puede reescribir la cookie httpOnly con el nuevo. Devuelve el
+// access token nuevo para que el caller actualice la sesión en memoria con
+// setAccessToken y el usuario no quede deslogueado.
+export async function changePasswordRequest({
+  currentPassword,
+  newPassword,
+}: ChangePasswordInput): Promise<{ token: string }> {
+  const res = await fetch("/api/auth/change-password", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    credentials: "include",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await parseJsonOrNull(res);
+  if (!res.ok) throw new ApiError(res.status, extractErrorMessage(data, res.status));
+  return data as { token: string };
 }
 
 // Repone el perfil del usuario cuando hay un access token válido pero no
